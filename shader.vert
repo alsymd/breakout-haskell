@@ -1,16 +1,22 @@
 #version 440 core
 layout (location = 0) in vec4 vertex;
+layout (location = 1) in mat4 model;
+layout (location = 5) in int _image_idx;
+layout (location = 6) in vec3 _spriteColor;
 
 out vec2 TexCoords;
-out int instanceID;
+out vec3 spriteColor;
+out int idx;
+
 uniform mat4 projection;
-uniform mat4 model[100];
+
 
 void main()
 {
   TexCoords = vertex.zw;
-  gl_Position = projection * model[gl_InstanceID] *vec4(vertex.xy, 0.0, 1.0);
-  // gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
-  // gl_Position = vec4(3*vertex.xy,0.0,1.0);
-  instanceID = gl_InstanceID;
+  spriteColor = _spriteColor;
+  idx = _image_idx;
+  
+  // gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0);
+  gl_Position = projection*model*vec4(vertex.xy,0.0,1.0);
 }

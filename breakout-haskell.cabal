@@ -27,6 +27,8 @@ library
                      , time
                      , Yampa
                      , linear
+                     , OpenGLRaw
+                     , lens
   default-language:    Haskell2010
   ghc-options:         -funfolding-use-threshold=16 -fexcess-precision -optc-ffast-math 
 

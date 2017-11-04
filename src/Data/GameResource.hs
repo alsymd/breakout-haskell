@@ -16,7 +16,7 @@ import System.IO (FilePath, IO)
 data Resource = Resource
   { ballTexture :: TextureObject
   , backgroundTexture :: TextureObject
-  , brickTexture :: TextureObject
+  , blockTexture :: TextureObject
   , shaderProgram :: Program
   }
 
