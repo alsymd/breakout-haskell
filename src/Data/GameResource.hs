@@ -17,6 +17,8 @@ data Resource = Resource
   { ballTexture :: TextureObject
   , backgroundTexture :: TextureObject
   , blockTexture :: TextureObject
+  , solidBlockTexture :: TextureObject
+  , paddleTexture :: TextureObject
   , shaderProgram :: Program
   }
 
@@ -33,7 +35,7 @@ createProgramWith shaders = do
 
 loadTextureFromFile :: FilePath -> IO (Either ByteString TextureObject)
 loadTextureFromFile filePath = do
-  Right img <- fmap convertRGB8 <$> readImage filePath
+  Right img <- fmap convertRGBA8 <$> readImage filePath
   tex <- genObjectName :: IO TextureObject
   texOrig <- get $ textureBinding Texture2D
   textureBinding Texture2D $= Just tex
@@ -42,14 +44,18 @@ loadTextureFromFile filePath = do
       Texture2D
       NoProxy
       0
-      RGB8
+      RGBA8
       (TextureSize2D
          (fromIntegral . imageWidth $ img)
          (fromIntegral . Codec.Picture.imageHeight $ img))
       0 .
-    PixelData RGB UnsignedByte . castPtr
+    PixelData RGBA UnsignedByte . castPtr
   generateMipmap' Texture2D
   textureFilter Texture2D $= ((Linear', Just Linear'), Linear')
+  
+  -- textureWrapMode Texture2D S $= (Repeated, ClampToBorder)
+  -- textureWrapMode Texture2D T $= (Repeated, ClampToBorder)
+  
   textureBinding Texture2D $= texOrig
   pure $ Right tex
 
@@ -59,12 +65,16 @@ loadResourceFromFiles ::
   -> FilePath
   -> FilePath
   -> FilePath
+  -> FilePath
+  -> FilePath
   -> IO (Either ByteString Resource)
-loadResourceFromFiles ballPath backgroundPath brickPath vertexShaderPath fragShaderPath = do
+loadResourceFromFiles ballPath backgroundPath blockPath solidBlockPath paddlePath vertexShaderPath fragShaderPath = do
   ballTex <- loadTextureFromFile ballPath
   backgroundTex <- loadTextureFromFile backgroundPath
-  brickTex <- loadTextureFromFile brickPath
+  blockTex <- loadTextureFromFile blockPath
+  paddleTex <- loadTextureFromFile paddlePath
+  solidBlockTex <- loadTextureFromFile solidBlockPath
   vertexShader <- loadShaderFromFile VertexShader vertexShaderPath
   fragmentShader <- loadShaderFromFile FragmentShader fragShaderPath
   program <- createProgramWith [vertexShader, fragmentShader]
-  pure $ Resource <$> ballTex <*> backgroundTex <*> brickTex <*> pure program
+  pure $ Resource <$> ballTex <*> backgroundTex <*> blockTex <*> solidBlockTex <*> paddleTex <*>pure program

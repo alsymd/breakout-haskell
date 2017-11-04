@@ -2,6 +2,8 @@
 -- The main signal
 module FRP.Signal where
 import FRP.Yampa
+import Data.LevelLoader
+import FRP.Block
 import GHC.Float
 import Data.Time.Clock
 import Linear.Matrix
@@ -11,19 +13,25 @@ import SDL hiding (clear,time)
 import Graphics.Rendering.OpenGL
 import Graphics.Renderer
 import Config
+import FRP.Paddle
+import Types
 -- Return type of arrow
 data Flow = Quit | Cont
 data Info = Info Flow [RenderInfo]
+
+data MainSigIn = MainSigIn Flow (Maybe GameInput)
 
 sense timeRef _ = do
   now <- getCurrentTime
   lastTime <- readIORef timeRef
   writeIORef timeRef now
   quit <- pure . any ((==) <$> eventPayload <*> pure QuitEvent) =<< pollEvents
+  keyState <- getKeyboardState
+  let gi = if keyState ScancodeLeft then Just GoLeft
+           else if keyState ScancodeRight then Just GoRight else Nothing
   let dt = realToFrac $ now `diffUTCTime` lastTime
-  pure (dt, Just $ if quit
-                      then Quit
-                      else Cont)
+  let flow = if quit then Quit else Cont
+  pure (dt, Just (MainSigIn flow gi))
 
 
 actuate vao program vbo window _ (Info Quit _)  = return True
@@ -39,24 +47,28 @@ xys =
       halfHeight = fromIntegral screenHeight /2
   in [let c = ((sin (-x-y)+1)/2) in (x,y,c) | x<-takeWhile (<halfWidth) $ [-halfWidth+25,-halfWidth+75..], y<-takeWhile  (<halfHeight) $[-halfHeight+25,-halfHeight+75..]]
 
-sig = proc flow -> do
-  t <- arr double2Float <<< arr (*2) <<< time -< undefined
-  let renderInfo = [(Graphics.Renderer.scale 100 100 100,0,Color3 0 1 0),((mkTransformationMat Linear.Matrix.identity (V3 200 200 0))!*!(Graphics.Renderer.scale 200 200 1), 0,Color3 ((sin t + 1)/2) 1 1)]
-      -- renderInfo' = fmap (\(x,y,c) -> ((mkTransformationMat Linear.Matrix.identity (V3 x y 0))!*! (Graphics.Renderer.scale 50 50 1),1,Color3 0 ((cos t+1)/2 * c) 0)) xys
-  objInfos <- staticObjs -< undefined
-  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,2,Color3 1 1 1) : objInfos)
 
-initInput = return  Cont
+sigPaddle = paddleObject (V2 0 (-340)) paddleSize paddleVelocity
+
+
+sig blocks = let bsig = parB blocks in
+  proc (MainSigIn flow gi) -> do
+  t <- arr double2Float <<< arr (*2) <<< time -< undefined
+  objInfos <- bsig -< V2 1 2
+  paddleR <- sigPaddle -< gi
+  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR : fmap renderInfo objInfos)
+
+initInput = return $ MainSigIn Cont Nothing
 
 
 staticRenderable w h x y t r g b = constant (set  translation (V3 x y 1) (Graphics.Renderer.scale w h 1), t, Color3 r g b)
 
-staticObjs = parB [staticRenderable 200 100 50 50 1 (240/255) (175/255) (36/255), staticRenderable 200 100 254 50 1 (240/255) (175/255) (36/255)]
+staticObjs = parB [staticRenderable 200 100 50 50 1 0 0.3 0.9, staticRenderable 200 100 254 50 1 0 0.3 0.9]
 
 runArrow window = do
   (vao,vbo,vbo1) <- initVao
   program <-initResource
-
+  level <- loadLevelFromFile "level2.dat"
   timeRef <- newIORef =<< getCurrentTime
-  reactimate initInput (sense timeRef) (actuate vao program vbo1 window) sig
+  reactimate initInput (sense timeRef) (actuate vao program vbo1 window) (sig level)
 

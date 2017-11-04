@@ -5,7 +5,7 @@ in flat int idx;
 
 out vec4 color;
 
-uniform sampler2D image[3];
+uniform sampler2D image[5];
 
 void main()
 {

@@ -13,6 +13,11 @@ maxInstance = 2000
 title = "Breakout"
 profile = Core Normal 4 4
 
+paddleSize :: V2 GLfloat
+paddleSize = V2 100 20
+
+paddleVelocity :: GLfloat
+paddleVelocity = 500
 
 glConfig = defaultOpenGL {glProfile = profile, glMultisampleSamples = 8}
 
@@ -30,6 +35,8 @@ initializeSDL = do
   glCreateContext window
   clearColor $= Color4 (102/255) (204/255) (255/255) 1
   cullFace $= Just Back
+  blend $= Enabled
+  blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
   return window
 
 

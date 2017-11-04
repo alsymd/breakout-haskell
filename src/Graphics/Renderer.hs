@@ -110,19 +110,25 @@ initVao = do
 
 initResource :: IO Program
 initResource = do
-  Right resource <- loadResourceFromFiles "awesomeface.png" "block.png" "background.png" "shader.vert" "shader.frag"
+  Right resource <- loadResourceFromFiles "awesomeface.png" "background.png"  "block.png" "block_solid.png" "paddle.png" "shader.vert" "shader.frag" 
   activeTexture $= TextureUnit 0
   textureBinding Texture2D $= Just (ballTexture resource)
   activeTexture $= TextureUnit 1
   textureBinding Texture2D $= Just (backgroundTexture resource)
   activeTexture $= TextureUnit 2
   textureBinding Texture2D $= Just (blockTexture resource)
+  activeTexture $= TextureUnit 3
+  textureBinding Texture2D $= Just (solidBlockTexture resource)
+  activeTexture $= TextureUnit 4
+  textureBinding Texture2D $= Just (paddleTexture resource)
   let program = shaderProgram resource
   currentProgram $= Just program
   mtx <- toGLmatrix projection :: IO (GLmatrix GLfloat)
   join $ uniformFunc program "image[0]" <*> (pure.TextureUnit) 0
   join $ uniformFunc program "image[1]" <*> (pure.TextureUnit) 1
   join $ uniformFunc program "image[2]" <*> (pure.TextureUnit) 2
+  join $ uniformFunc program "image[3]" <*> (pure.TextureUnit) 3
+  join $ uniformFunc program "image[4]" <*> (pure.TextureUnit) 4
   join $ uniformFunc program "projection" <*> pure mtx
   pure program
 
