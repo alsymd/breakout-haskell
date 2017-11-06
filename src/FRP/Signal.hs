@@ -2,6 +2,8 @@
 -- The main signal
 module FRP.Signal where
 import FRP.Yampa
+import FRP.Ball
+import Data.Maybe
 import Data.LevelLoader
 import FRP.Block
 import GHC.Float
@@ -19,7 +21,8 @@ import Types
 data Flow = Quit | Cont
 data Info = Info Flow [RenderInfo]
 
-data MainSigIn = MainSigIn Flow (Maybe GameInput)
+data MainSigIn = MainSigIn Flow GameInput
+
 
 sense timeRef _ = do
   now <- getCurrentTime
@@ -29,9 +32,12 @@ sense timeRef _ = do
   keyState <- getKeyboardState
   let gi = if keyState ScancodeLeft then Just GoLeft
            else if keyState ScancodeRight then Just GoRight else Nothing
+  let gi' = if keyState ScancodeSpace
+               then Just Shoot
+               else Nothing
   let dt = realToFrac $ now `diffUTCTime` lastTime
   let flow = if quit then Quit else Cont
-  pure (dt, Just (MainSigIn flow gi))
+  pure (dt, Just (MainSigIn flow (GameInput gi gi')))
 
 
 actuate vao program vbo window _ (Info Quit _)  = return True
@@ -49,16 +55,19 @@ xys =
 
 
 sigPaddle = paddleObject (V2 0 (-340)) paddleSize paddleVelocity
-
+sigBall = ballObject 
 
 sig blocks = let bsig = parB blocks in
   proc (MainSigIn flow gi) -> do
   t <- arr double2Float <<< arr (*2) <<< time -< undefined
   objInfos <- bsig -< V2 1 2
-  paddleR <- sigPaddle -< gi
-  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR : fmap renderInfo objInfos)
+  (paddleR, pPos) <- sigPaddle -< gi
+  ballR <- sigBall -< (pPos, if isJust (shoot gi)
+                                then Just (V2 0.707107 0.707107)
+                                else Nothing)
+  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR : ballR : fmap renderInfo objInfos)
 
-initInput = return $ MainSigIn Cont Nothing
+initInput = return $ MainSigIn Cont (GameInput Nothing Nothing)
 
 
 staticRenderable w h x y t r g b = constant (set  translation (V3 x y 1) (Graphics.Renderer.scale w h 1), t, Color3 r g b)

@@ -1,4 +1,4 @@
-#version 440 core
+#version 400 core
 layout (location = 0) in vec4 vertex;
 layout (location = 1) in mat4 model;
 layout (location = 5) in int _image_idx;
@@ -6,7 +6,7 @@ layout (location = 6) in vec3 _spriteColor;
 
 out vec2 TexCoords;
 out vec3 spriteColor;
-out int idx;
+flat out int idx;
 
 uniform mat4 projection;
 

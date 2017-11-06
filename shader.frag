@@ -1,7 +1,7 @@
-#version 440 core
+#version 400 core
 in vec2 TexCoords;
 in vec3 spriteColor;
-in flat int idx;
+flat in int idx;
 
 out vec4 color;
 

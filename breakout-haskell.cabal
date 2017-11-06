@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib, Data.GameResource, Config, FRP.Signal,Graphics.Renderer, FRP.Block
-                     , Data.LevelLoader, FRP.Paddle, Types
+                     , Data.LevelLoader, FRP.Paddle, Types, FRP.Ball
   build-depends:       base >= 4.7 && < 5
                      , OpenGL
                      , bytestring

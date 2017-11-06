@@ -11,10 +11,16 @@ screenWidth = 1024
 screenHeight = 768
 maxInstance = 2000
 title = "Breakout"
-profile = Core Normal 4 4
+profile = Core Normal 4 0
 
 paddleSize :: V2 GLfloat
 paddleSize = V2 100 20
+
+ballRadius :: GLfloat
+ballRadius = 25
+
+ballSpeed :: GLfloat
+ballSpeed = 500
 
 paddleVelocity :: GLfloat
 paddleVelocity = 500

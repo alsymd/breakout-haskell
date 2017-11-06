@@ -11,7 +11,7 @@ import Control.Monad
 import Foreign.Ptr
 import Foreign.Storable
 import Linear
-import Graphics.GL.Core44
+import Graphics.GL.Core40
 import Linear.Projection
 import Config (screenWidth,screenHeight,maxInstance)
 

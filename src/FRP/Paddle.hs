@@ -10,8 +10,8 @@ import Config
 import Linear
 
 
-type PaddleIn = Maybe GameInput
-type PaddleOut = RenderInfo
+type PaddleIn = GameInput
+type PaddleOut = (RenderInfo, V2 GLfloat)
 type Velocity = GLfloat
 
 
@@ -23,17 +23,18 @@ paddleObject (V2 x y) (V2 w h) v =
       clamp = \ x v -> clampV x v w
   in
     proc gi -> do
-    let vel = case gi of
+    let vel = case lr gi of
               Just x -> if x == GoLeft then -v else v
               Nothing -> 0
     rec
       xPos <- integral -< (clamp xPos vel :: GLfloat)
     let renderInfo = (set translation (V3 xPos y 0 :: V3 GLfloat) scaleMtx, 4, Color3 1 1 1)
-    returnA -< renderInfo
+    returnA -< (renderInfo,V2 xPos y)
 
 clampV :: GLfloat -> GLfloat -> GLfloat -> GLfloat
-clampV x v w = if x < - fromIntegral screenWidth / 2 + w / 2
+clampV x v w = if x <= - fromIntegral screenWidth / 2 + w / 2
                then if v > 0 then v else 0
-               else if x > fromIntegral screenWidth / 2 - w /2
+               else if x >= fromIntegral screenWidth / 2 - w /2
                     then if v < 0 then v else 0
                     else v
+
