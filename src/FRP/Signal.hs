@@ -60,12 +60,13 @@ sigBall = ballObject
 sig blocks = let bsig = parB blocks in
   proc (MainSigIn flow gi) -> do
   t <- arr double2Float <<< arr (*2) <<< time -< undefined
-  objInfos <- bsig -< V2 1 2
   (paddleR, pPos) <- sigPaddle -< gi
-  ballR <- sigBall -< (pPos, if isJust (shoot gi)
-                                then Just (V2 0.707107 0.707107)
-                                else Nothing)
+  (ballR, ballPos) <- sigBall -< (pPos, if isJust (shoot gi)
+                                           then Just (V2 0.707107 0.707107)
+                                           else Nothing, Nothing)
+  objInfos <- bsig -< ballPos
   returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR :  fmap renderInfo objInfos ++ [ballR])
+
 
 initInput = return $ MainSigIn Cont (GameInput Nothing Nothing)
 

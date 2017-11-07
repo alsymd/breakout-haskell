@@ -10,7 +10,6 @@ type Size = V2 GLfloat
 data GameInput = GameInput {lr :: Maybe Direction, shoot :: Maybe Shoot} deriving (Show,Eq)
 data Direction = GoLeft | GoRight deriving (Show, Eq)
 data Shoot = Shoot deriving (Show, Eq)
-
 instance (Eq a, Floating a) => VectorSpace (V2 a) a where
   zeroVector = V2 0 0
   a *^ (V2 x y) = V2 (a*x) (a*y)

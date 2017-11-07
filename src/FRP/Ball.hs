@@ -11,10 +11,9 @@ import Graphics.Rendering.OpenGL (Color3(Color3), GLfloat)
 import Linear(V2(..),translation,V3(..))
 import Types
 
+type BallIn = (Position, Maybe (V2 GLfloat), Maybe (V2 GLfloat))
 
-type BallIn = (Position, Maybe (V2 GLfloat))
-
-type BallOut = RenderInfo
+type BallOut = (RenderInfo, V2 GLfloat)
 
 reflect :: V2 GLfloat -> V2 GLfloat -> V2 GLfloat
 reflect d n = d ^-^ (2*(d `dot` n)*^  n)
@@ -22,18 +21,18 @@ reflect d n = d ^-^ (2*(d `dot` n)*^  n)
 staticBallObject ::  SF BallIn BallOut
 staticBallObject =
   let scaleMtx = scale ballRadius ballRadius 1
-  in proc (V2 xP yP,_) ->
+  in proc (V2 xP yP,_,_) ->
   do let renderInfo
            = (set translation (V3 xP (yP + 10 + ballRadius / 2) 0) scaleMtx, 0,
               Color3 1 1 1)
-     returnA -< renderInfo
+     returnA -< (renderInfo, V2 xP (yP + 10 + ballRadius / 2))
 
 
 ballObject = switch (staticBallObject &&& ballSense) flyingBallObject
 
 
 ballSense :: SF BallIn (Event (V2 GLfloat,V2 GLfloat))
-ballSense = proc (pos , maybeDir) -> do
+ballSense = proc (pos , maybeDir,_) -> do
                  let ret = case maybeDir of
                              Nothing -> noEvent
                              Just dir -> Event (pos,dir)
@@ -43,11 +42,13 @@ ballSense = proc (pos , maybeDir) -> do
 flyingBallObject ((V2 x y),vel) =
   let scaleMtx = scale ballRadius ballRadius 1      
       addOffSet (V2 xPos yPos)  = V2 (xPos + x) (yPos+y + 10 + ballRadius/2)
-      sig = proc (_,v) -> do
+      sig = proc ((_,_,maybeNormal),v) -> do
         rec
-          (V2 xPos yPos,v') <- (arr addOffSet *** identity) <<< ((integral <<< arr (ballSpeed*^)) &&& identity) -< clampedBallV (V2 xPos yPos) v
+          (V2 xPos yPos,v') <- (arr addOffSet *** identity) <<< ((integral <<< arr (ballSpeed*^)) &&& identity) -< clampedBallV (V2 xPos yPos) $ case maybeNormal of
+                                                                                                                                                   Just normal -> reflect v normal
+                                                                                                                                                   Nothing -> v
         let renderInfo = (set translation (V3 xPos yPos 0) scaleMtx,0,Color3 1 1 1)
-        returnA -< (renderInfo,v')
+        returnA -< ((renderInfo,V2 xPos yPos),v')
   in loopPre vel sig
 
 clampedBallV pos@(V2 x y) vel =
