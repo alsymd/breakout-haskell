@@ -65,7 +65,7 @@ sig blocks = let bsig = parB blocks in
   ballR <- sigBall -< (pPos, if isJust (shoot gi)
                                 then Just (V2 0.707107 0.707107)
                                 else Nothing)
-  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR : ballR : fmap renderInfo objInfos)
+  returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR :  fmap renderInfo objInfos ++ [ballR])
 
 initInput = return $ MainSigIn Cont (GameInput Nothing Nothing)
 
