@@ -3,3 +3,6 @@
 *.eventlog
 *.jpg
 *.prof
+*.ps
+*.hp
+*.aux

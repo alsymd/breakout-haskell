@@ -44,24 +44,34 @@ flyingBallObject ((V2 x y),vel) =
       addOffSet (V2 xPos yPos)  = V2 (xPos + x) (yPos+y + 10 + ballRadius/2)
       sig = proc ((_,_,maybeNormal),v) -> do
         rec
-          (V2 xPos yPos,v') <- (arr addOffSet *** identity) <<< ((integral <<< arr (ballSpeed*^)) &&& identity) -< clampedBallV (V2 xPos yPos) $ case maybeNormal of
-                                                                                                                                                   Just normal -> reflect v normal
-                                                                                                                                                   Nothing -> v
+          (V2 xPos yPos,v') <- (arr addOffSet *** identity) <<< ((integral <<< arr (ballSpeed*^)) &&& identity) <<< clampedBallSig -< ((V2 xPos yPos),v) -- $ case maybeNormal of
+                                                                                                                                                                        --     Just normal -> reflect v normal
+                                                                                                                                                                        --     Nothing -> v
         let renderInfo = (set translation (V3 xPos yPos 0) scaleMtx,0,Color3 1 1 1)
         returnA -< ((renderInfo,V2 xPos yPos),v')
   in loopPre vel sig
 
-clampedBallV pos@(V2 x y) vel =
+
+
+passedN = arr (<=0.001) <<<localTime
+
+clampedBallSig = 
+  let sig = arr clampedBallV
+      sense v = switch sig (\v -> pause v passedN clampedBallSig)
+  in switch sig sense
+
+
+clampedBallV (pos@(V2 x y),vel) =
   let leftNormal = (V2 1 0)
       rightNormal = (V2 (-1) 0)
       topNormal = (V2 0 (-1))
       halfScreenWidth = fromIntegral screenWidth / 2
       halfScreenHeight = fromIntegral screenHeight / 2
   in if x <= -halfScreenWidth
-     then reflect vel leftNormal
+     then (reflect vel leftNormal,Event (reflect vel leftNormal))
      else if x >= halfScreenWidth
-          then reflect vel rightNormal
+          then (reflect vel rightNormal,Event (reflect vel rightNormal))
           else if y>=halfScreenHeight
-               then reflect vel topNormal
-               else vel
-    
+               then (reflect vel topNormal, Event (reflect vel topNormal))
+               else (vel,noEvent)
+
