@@ -18,12 +18,12 @@ type BlockIn = (V2 GLfloat)
 
 data BlockType = Solid | Orange | Green | Cyan | White
 
-laifuSig = proc (hit, rem) -> do
-         returnA -< if hit
+laifuSig = proc (evt, rem) -> do
+         returnA -< if isEvent evt
                        then (rem-1,rem-1)
                        else (rem,rem)
 
-laifuLoop = loopPre 3 laifuSig
+laifuLoop = loopPre 1 laifuSig
 
 
 colorSwitch c@(Color3 r g b)  = let init = constant c
@@ -38,6 +38,23 @@ data BlockOut = BlockOut
   ,genPowerOff :: Bool
   ,collision :: Maybe (V2 GLfloat)}
 -- constant BlockOut{renderInfo = renderInfo, dead = False, genPowerOff = False}
+   
+-- No, you shouldn't arrest a function that kills a block. Unless it is an AI block and has AI rights.
+callKiller :: SF (BlockIn, [BlockOut]) (Event [Bool])
+callKiller = proc (_, blockOuts) -> do
+                let killList = fmap dead blockOuts
+                returnA -< case any (==False) killList of
+                             True -> Event killList
+                             _ -> noEvent
+
+blockSerialKiller :: [SF BlockIn BlockOut] -> [Bool] -> SF BlockIn [BlockOut]
+blockSerialKiller sigs killList = 
+  let zipped = zip killList sigs
+      newSigs = snd.unzip.filter ((==False) .fst) $ zipped
+  in pSwitchB newSigs (callKiller >>> notYet) blockSerialKiller
+
+
+
 blockObject ::  Position -> Size -> BlockType -> SF BlockIn BlockOut
 blockObject (V2 x y) (V2 w h) blockType =
   let mtx = set translation (V3 x y 0) (scale w h 1) 
@@ -59,5 +76,5 @@ blockObject (V2 x y) (V2 w h) blockType =
               hasCollision = abs xDiff <= halfWidth && abs yDiff <= halfHeight
           c <- cs -< hasCollision
           let renderInfo = (mtx,texture,c)
-          l <-laifuLoop -< hasCollision
-          returnA -< BlockOut {renderInfo = renderInfo, dead = l < 0, genPowerOff = False, collision = Nothing}
+          l <-laifuLoop <<< edge -< hasCollision
+          returnA -< BlockOut {renderInfo = renderInfo, dead = l < 0, genPowerOff = False, collision = if hasCollision then (Just (V2 0 (-1))) else Nothing}

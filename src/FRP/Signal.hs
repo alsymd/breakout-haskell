@@ -2,6 +2,7 @@
 -- The main signal
 module FRP.Signal where
 import FRP.Yampa
+import Control.Monad
 import FRP.Ball
 import Data.Maybe
 import Data.LevelLoader
@@ -57,14 +58,19 @@ xys =
 sigPaddle = paddleObject (V2 0 (-340)) paddleSize paddleVelocity
 sigBall = ballObject 
 
-sig blocks = let bsig = parB blocks in
+sig blocks = let bsig = dpSwitchB blocks callKiller blockSerialKiller in
   proc (MainSigIn flow gi) -> do
   t <- arr double2Float <<< arr (*2) <<< time -< undefined
-  (paddleR, pPos) <- sigPaddle -< gi
-  (ballR, ballPos) <- sigBall -< (pPos, if isJust (shoot gi)
-                                           then Just (V2 0.707107 0.707107)
-                                           else Nothing, Nothing)
-  objInfos <- bsig -< ballPos
+  
+  rec
+    (paddleR, pPos,mcol) <- sigPaddle -< (gi,ballPos)
+    (ballR, ballPos) <- (sigBall) -< (pPos, if isJust (shoot gi)
+                                               then Just (V2 0.707107 0.707107)
+                                               else Nothing,   (\xs -> if null xs
+                                                                          then Nothing
+                                                                          else Just $ head xs) .catMaybes . (mcol:) .fmap collision $ objInfos)
+    objInfos <- bsig -< ballPos
+
   returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR :  fmap renderInfo objInfos ++ [ballR])
 
 
