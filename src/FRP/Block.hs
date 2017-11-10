@@ -51,7 +51,7 @@ blockSerialKiller :: [SF BlockIn BlockOut] -> [Bool] -> SF BlockIn [BlockOut]
 blockSerialKiller sigs killList = 
   let zipped = zip killList sigs
       newSigs = snd.unzip.filter ((==False) .fst) $ zipped
-  in pSwitchB newSigs (callKiller >>> notYet) blockSerialKiller
+  in dpSwitchB newSigs (callKiller >>> notYet) blockSerialKiller
 
 
 
