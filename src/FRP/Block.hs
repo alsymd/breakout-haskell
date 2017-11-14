@@ -1,6 +1,8 @@
 {-# LANGUAGE Arrows #-}
 module FRP.Block where
 import FRP.Yampa
+import Debug.Trace
+import Data.Maybe
 import Graphics.Renderer
 import Graphics.Rendering.OpenGL (GLfloat, Color3(Color3))
 import Linear
@@ -16,14 +18,14 @@ bottomNormal = V2 0 1
 
 type BlockIn = (V2 GLfloat)
 
-data BlockType = Solid | Orange | Green | Cyan | White
+data BlockType = Solid | Orange | Green | Cyan | White deriving(Show,Eq)
 
 laifuSig = proc (evt, rem) -> do
          returnA -< if isEvent evt
                        then (rem-1,rem-1)
                        else (rem,rem)
 
-laifuLoop = loopPre 1 laifuSig
+laifuLoop = loopPre 0 laifuSig
 
 
 colorSwitch c@(Color3 r g b)  = let init = constant c
@@ -54,6 +56,10 @@ blockSerialKiller sigs killList =
   in dpSwitchB newSigs (callKiller >>> notYet) blockSerialKiller
 
 
+clamp x xmin xmax
+      | x < xmin = xmin
+      | x > xmax = xmax
+      | otherwise = x
 
 blockObject ::  Position -> Size -> BlockType -> SF BlockIn BlockOut
 blockObject (V2 x y) (V2 w h) blockType =
@@ -73,8 +79,16 @@ blockObject (V2 x y) (V2 w h) blockType =
               yDiff = y - ballY
               halfWidth = (w + ballRadius)/2
               halfHeight =(h + ballRadius)/2
-              hasCollision = abs xDiff <= halfWidth && abs yDiff <= halfHeight
-          c <- cs -< hasCollision
+              maybeNormal = if abs xDiff > halfWidth || abs yDiff > halfHeight
+                               then Nothing
+                               else let vec1 = V2 xDiff yDiff
+                                        vec2 = V2 (clamp (-xDiff) (-w/2) (w/2)) (clamp (-yDiff) (-h/2) (h/2))
+                                        vec3 = vec1 + vec2
+                                    in if vec3 `FRP.Yampa.dot` vec3 < ballRadius *ballRadius
+                                          then Just $ FRP.Yampa.normalize vec3
+                                          else Nothing
+
+          c <- cs -< isJust maybeNormal
           let renderInfo = (mtx,texture,c)
-          l <-laifuLoop <<< edge -< hasCollision
-          returnA -< BlockOut {renderInfo = renderInfo, dead = l < 0, genPowerOff = False, collision = if hasCollision then (Just (V2 0 (-1))) else Nothing}
+          l <-laifuLoop <<< edge -< isJust maybeNormal
+          returnA -< BlockOut {renderInfo = renderInfo,  dead = if blockType /= Solid then l < 0 else False, genPowerOff = False, collision = fmap negate maybeNormal}

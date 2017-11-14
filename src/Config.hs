@@ -20,10 +20,10 @@ ballRadius :: GLfloat
 ballRadius = 25
 
 ballSpeed :: GLfloat
-ballSpeed = 500
+ballSpeed = 600
 
 paddleVelocity :: GLfloat
-paddleVelocity = 500
+paddleVelocity = 800
 
 glConfig = defaultOpenGL {glProfile = profile, glMultisampleSamples = 8}
 
@@ -43,6 +43,7 @@ initializeSDL = do
   cullFace $= Just Back
   blend $= Enabled
   blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
+  swapInterval $= SynchronizedUpdates
   return window
 
 
