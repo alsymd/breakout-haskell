@@ -20,6 +20,7 @@ data Resource = Resource
   , solidBlockTexture :: TextureObject
   , paddleTexture :: TextureObject
   , shaderProgram :: Program
+  , particleProgram :: Program
   }
 
 loadShaderFromFile shaderType filePath =
@@ -67,8 +68,10 @@ loadResourceFromFiles ::
   -> FilePath
   -> FilePath
   -> FilePath
+  -> FilePath
+  -> FilePath
   -> IO (Either ByteString Resource)
-loadResourceFromFiles ballPath backgroundPath blockPath solidBlockPath paddlePath vertexShaderPath fragShaderPath = do
+loadResourceFromFiles ballPath backgroundPath blockPath solidBlockPath paddlePath vertexShaderPath fragShaderPath particleVertexShaderPath particleFragShaderPath = do
   ballTex <- loadTextureFromFile ballPath
   backgroundTex <- loadTextureFromFile backgroundPath
   blockTex <- loadTextureFromFile blockPath
@@ -76,5 +79,8 @@ loadResourceFromFiles ballPath backgroundPath blockPath solidBlockPath paddlePat
   solidBlockTex <- loadTextureFromFile solidBlockPath
   vertexShader <- loadShaderFromFile VertexShader vertexShaderPath
   fragmentShader <- loadShaderFromFile FragmentShader fragShaderPath
+  particleVShader <- loadShaderFromFile VertexShader particleVertexShaderPath
+  particleFShader <- loadShaderFromFile FragmentShader particleFragShaderPath
   program <- createProgramWith [vertexShader, fragmentShader]
-  pure $ Resource <$> ballTex <*> backgroundTex <*> blockTex <*> solidBlockTex <*> paddleTex <*>pure program
+  program' <- createProgramWith [particleVShader,particleFShader]
+  pure $ Resource <$> ballTex <*> backgroundTex <*> blockTex <*> solidBlockTex <*> paddleTex <*>pure program <*> pure program'

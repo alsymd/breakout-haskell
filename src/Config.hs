@@ -17,10 +17,10 @@ paddleSize :: V2 GLfloat
 paddleSize = V2 100 20
 
 ballRadius :: GLfloat
-ballRadius = 25
+ballRadius = 15
 
 ballSpeed :: GLfloat
-ballSpeed = 600
+ballSpeed = 450
 
 paddleVelocity :: GLfloat
 paddleVelocity = 800

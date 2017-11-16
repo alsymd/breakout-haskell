@@ -3,6 +3,7 @@
 module FRP.Ball where
 
 import Config
+import Debug.Trace
 import Control.Lens (set)
 import FRP.Yampa
 import FRP.Yampa.VectorSpace
@@ -20,12 +21,12 @@ reflect d n = d ^-^ (2*(d `dot` n)*^  n)
 
 staticBallObject ::  SF BallIn BallOut
 staticBallObject =
-  let scaleMtx = scale ballRadius ballRadius 1
+  let scaleMtx = scale (ballRadius*2) (ballRadius*2) 1
   in proc (V2 xP yP,_,_) ->
   do let renderInfo
-           = (set translation (V3 xP (yP + 10 + ballRadius / 2) 0) scaleMtx, 0,
+           = (set translation (V3 xP (yP + 10 + ballRadius) 0) scaleMtx, 0,
               Color3 1 1 1)
-     returnA -< (renderInfo, V2 xP (yP + 10 + ballRadius / 2))
+     returnA -< (renderInfo, V2 xP (yP + 10 + ballRadius))
 
 
 ballObject = switch (staticBallObject &&& ballSense) flyingBallObject
@@ -40,8 +41,8 @@ ballSense = proc (pos , maybeDir,_) -> do
 
 
 flyingBallObject ((V2 x y),vel) =
-  let scaleMtx = scale ballRadius ballRadius 1      
-      addOffSet (V2 xPos yPos)  = V2 (xPos + x) (yPos+y + 10 + ballRadius/2)
+  let scaleMtx = scale (ballRadius*2) (ballRadius*2) 1      
+      addOffSet (V2 xPos yPos)  = V2 (xPos + x) (yPos+y + 10 + ballRadius)
       sig = proc ((_,_,maybeNormal),v) -> do
         let vNew = case maybeNormal of
                      Nothing -> v
@@ -49,21 +50,15 @@ flyingBallObject ((V2 x y),vel) =
                                        then reflect v normal
                                        else v
         rec
-          (V2 xPos yPos,v') <- (arr addOffSet *** identity) <<< ((integral <<< arr (ballSpeed*^)) &&& identity) <<< arr clampedBallV -< ((V2 xPos yPos),vNew) -- $ case maybeNormal of
-                                                                                                                                                                             --     Just normal -> reflect v normal
-                                                                                                                                                                             --     Nothing -> v
+          (V2 xPos yPos,v') <- arr addOffSet *** identity <<< ((integral <<< arr (ballSpeed*^)) &&& identity) <<< arr clampedBallV -< ((V2 xPos yPos),vNew)
         let renderInfo = (set translation (V3 xPos yPos 0) scaleMtx,0,Color3 1 1 1)
         returnA -< ((renderInfo,V2 xPos yPos),v')
   in loopPre vel sig
 
 
 
-passedN = arr (<=0.001) <<<localTime
 
--- clampedBallSig = 
---   let sig = arr clampedBallV
---       sense v = switch sig (\v -> pause v passedN clampedBallSig)
---   in switch sig sense
+
 
 
 clampedBallV (pos@(V2 x y),vel) =
@@ -72,11 +67,11 @@ clampedBallV (pos@(V2 x y),vel) =
       topNormal = (V2 0 (-1))
       halfScreenWidth = fromIntegral screenWidth / 2
       halfScreenHeight = fromIntegral screenHeight / 2
-  in if x <= -halfScreenWidth
+  in if x-ballRadius <= -halfScreenWidth
      then if (vel `dot` leftNormal) < 0 then  (reflect vel leftNormal) else vel
-     else if x >= halfScreenWidth
-          then if (vel `dot` rightNormal) < 0 then reflect vel rightNormal else vel
-          else if y>=halfScreenHeight
+     else if x+ballRadius >= halfScreenWidth
+          then if (vel `dot` rightNormal) < 0  then reflect vel rightNormal else vel
+          else if y+ballRadius>=halfScreenHeight
                then if (vel `dot` topNormal) <0 then reflect vel topNormal else vel
                else vel
 

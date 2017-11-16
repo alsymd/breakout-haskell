@@ -31,8 +31,8 @@ paddleObject (V2 x y) (V2 w h) v =
       xPos <- integral -< (clamp xPos vel :: GLfloat)
     let xDiff =  xPos - ballX
         yDiff = y - ballY
-        halfWidth = (ballRadius + paddleWidth)/2
-        halfHeight = (ballRadius + paddleHeight)/2
+        halfWidth = (paddleWidth)/2 + ballRadius
+        halfHeight = (paddleHeight)/2 + ballRadius
 
     let renderInfo = (set translation (V3 xPos y 0 :: V3 GLfloat) scaleMtx, 4, Color3 1 1 1)
     returnA -< (renderInfo,V2 xPos y, if abs xDiff <= halfWidth && abs yDiff <= halfHeight

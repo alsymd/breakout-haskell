@@ -71,20 +71,18 @@ blockObject (V2 x y) (V2 w h) blockType =
           Green -> (True, Color3 0 0.7 0, 2)
           Cyan -> (True, Color3 0.2 0.6 1, 2)
           White -> (True, Color3 0.8 0.8 0.4, 2)
-      hitreact = undefined
-      -- renderInfo = (mtx,texture,color) :: RenderInfo
       cs = colorSwitch color
   in proc (V2 ballX ballY) -> do
           let xDiff = x - ballX
               yDiff = y - ballY
-              halfWidth = (w + ballRadius)/2
-              halfHeight =(h + ballRadius)/2
+              halfWidth = w/2 + ballRadius
+              halfHeight =h/2 + ballRadius
               maybeNormal = if abs xDiff > halfWidth || abs yDiff > halfHeight
                                then Nothing
                                else let vec1 = V2 xDiff yDiff
                                         vec2 = V2 (clamp (-xDiff) (-w/2) (w/2)) (clamp (-yDiff) (-h/2) (h/2))
                                         vec3 = vec1 + vec2
-                                    in if vec3 `FRP.Yampa.dot` vec3 < ballRadius *ballRadius
+                                    in if traceShow vec3 vec3 `FRP.Yampa.dot` vec3 < ballRadius *ballRadius
                                           then Just $ FRP.Yampa.normalize vec3
                                           else Nothing
 
