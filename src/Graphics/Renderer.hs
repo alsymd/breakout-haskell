@@ -15,9 +15,12 @@ import Graphics.GL.Core40
 import Linear.Projection
 import Config (screenWidth,screenHeight,maxInstance)
 
-type RenderInfo = (M44 GLfloat,GLuint,Color3 GLfloat )
-renderInfoSize = sizeOf (undefined::GLfloat) * 20
+type RenderInfo = (M44 GLfloat,GLint,Color3 GLfloat )
+type ParticleRenderInfo = (V2 GLfloat, GLint, Color3 GLfloat)
 
+
+renderInfoSize = sizeOf (undefined::GLfloat) * 20
+particleRenderInfoSize = sizeOf (undefined::GLfloat) * 6
 
 projection :: M44 GLfloat
 projection = Linear.Projection.ortho (-halfWidth) halfWidth (-halfHeight) (halfHeight) (-1) 1
@@ -108,9 +111,58 @@ initVao = do
                             ,-0.5,0.5,0.0,1.0]
 
 
+
+initParticleVao :: IO (VertexArrayObject, BufferObject, BufferObject)
+initParticleVao = do
+  vao <- genObjectName
+  bindVertexArrayObject $= Just vao
+  vbo <- genObjectName
+  vbo2 <- genObjectName
+  bindBuffer ArrayBuffer $= Just vbo
+  bufferDataWithVector vertices ArrayBuffer StaticDraw
+  vertexAttribPointer (AttribLocation 0) $=
+    (ToFloat,
+     VertexArrayDescriptor
+      4
+      Float
+      (fromIntegral $ 4* sizeOf (undefined ::GLfloat))
+      (intPtrToPtr 0))
+  vertexAttribArray (AttribLocation 0) $= Enabled
+  bindBuffer ArrayBuffer $= Just vbo2
+
+  bufferData ArrayBuffer $= ( fromIntegral particleRenderInfoSize * fromIntegral maxInstance
+   , nullPtr
+   , DynamicDraw)
+  vertexAttribPointer (AttribLocation 1) $=
+    (ToFloat,
+     VertexArrayDescriptor 2 Float (fromIntegral particleRenderInfoSize) (intPtrToPtr 0))
+  vertexAttribArray (AttribLocation 1) $= Enabled
+
+  vertexAttribPointer (AttribLocation 2) $=
+    (KeepIntegral
+    ,VertexArrayDescriptor 1 Int (fromIntegral particleRenderInfoSize) (intPtrToPtr . fromIntegral $ 2 * sizeOf (undefined::GLfloat)))
+  vertexAttribArray (AttribLocation 2) $= Enabled
+
+
+  vertexAttribPointer (AttribLocation 3) $=
+    (ToFloat
+    ,VertexArrayDescriptor 3 Float (fromIntegral particleRenderInfoSize) (intPtrToPtr . fromIntegral $ 3 * sizeOf (undefined::GLfloat)))
+  vertexAttribArray (AttribLocation 3) $= Enabled
+  
+  traverse_ (flip glVertexAttribDivisor 1) [1..3]
+  pure (vao,vbo,vbo2)
+  where vertices :: Vector GLfloat
+        vertices = fromList [-0.5,0.5,0.0,1.0
+                            ,-0.5,-0.5,0.0,0.0
+                            ,0.5,-0.5,1.0,0.0
+                            ,0.5,-0.5,1.0,0.0
+                            ,0.5,0.5,1.0,1.0
+                            ,-0.5,0.5,0.0,1.0]
+
+
 initResource :: IO Program
 initResource = do
-  Right resource <- loadResourceFromFiles "awesomeface.png" "background.png"  "block.png" "block_solid.png" "paddle.png" "shader.vert" "shader.frag" 
+  Right resource <- loadResourceFromFiles "awesomeface.png" "background.png"  "block.png" "block_solid.png" "paddle.png" "shader.vert" "shader.frag"  "particle.vert" "particle.frag"
   activeTexture $= TextureUnit 0
   textureBinding Texture2D $= Just (ballTexture resource)
   activeTexture $= TextureUnit 1
@@ -158,7 +210,7 @@ mappingFailureCallback MappingFailed = hPutStrLn stderr "Ooops, how could the ma
 mappingFailureCallback _ = pure ()
 
 
-renderNaive :: VertexArrayObject -> BufferObject -> Program -> [(M44 GLfloat,GLuint,Color3 GLfloat )]  -> IO ()
+renderNaive :: VertexArrayObject -> BufferObject -> Program -> [RenderInfo]  -> IO ()
 renderNaive vao objectVbo program xs  =
   let l = L.genericLength xs -- To be optimized
   in do currentProgram $= Just program
