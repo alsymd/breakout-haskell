@@ -9,7 +9,7 @@ import Graphics.Rendering.OpenGL
 -- Top Level Configurations
 screenWidth = 1024
 screenHeight = 768
-maxInstance = 2000
+maxInstance = 200
 title = "Breakout"
 profile = Core Normal 4 0
 
@@ -20,7 +20,7 @@ ballRadius :: GLfloat
 ballRadius = 15
 
 ballSpeed :: GLfloat
-ballSpeed = 450
+ballSpeed = 500
 
 paddleVelocity :: GLfloat
 paddleVelocity = 800

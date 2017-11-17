@@ -1,7 +1,6 @@
 {-# LANGUAGE Arrows #-}
 module FRP.Block where
 import FRP.Yampa
-import Debug.Trace
 import Data.Maybe
 import Graphics.Renderer
 import Graphics.Rendering.OpenGL (GLfloat, Color3(Color3))
@@ -39,7 +38,6 @@ data BlockOut = BlockOut
   ,dead :: Bool
   ,genPowerOff :: Bool
   ,collision :: Maybe (V2 GLfloat)}
--- constant BlockOut{renderInfo = renderInfo, dead = False, genPowerOff = False}
    
 -- No, you shouldn't arrest a function that kills a block. Unless it is an AI block and has AI rights.
 callKiller :: SF (BlockIn, [BlockOut]) (Event [Bool])
@@ -82,7 +80,7 @@ blockObject (V2 x y) (V2 w h) blockType =
                                else let vec1 = V2 xDiff yDiff
                                         vec2 = V2 (clamp (-xDiff) (-w/2) (w/2)) (clamp (-yDiff) (-h/2) (h/2))
                                         vec3 = vec1 + vec2
-                                    in if traceShow vec3 vec3 `FRP.Yampa.dot` vec3 < ballRadius *ballRadius
+                                    in if vec3 `FRP.Yampa.dot` vec3 < ballRadius *ballRadius
                                           then Just $ FRP.Yampa.normalize vec3
                                           else Nothing
 
