@@ -16,7 +16,7 @@ import Linear.Projection
 import Config (screenWidth,screenHeight,maxInstance)
 
 type RenderInfo = (M44 GLfloat,GLint,Color3 GLfloat )
-type ParticleRenderInfo = (V2 GLfloat, GLint, Color3 GLfloat)
+type ParticleRenderInfo = (V2 GLfloat, Color4 GLfloat)
 
 
 renderInfoSize = sizeOf (undefined::GLfloat) * 20
@@ -138,18 +138,14 @@ initParticleVao = do
      VertexArrayDescriptor 2 Float (fromIntegral particleRenderInfoSize) (intPtrToPtr 0))
   vertexAttribArray (AttribLocation 1) $= Enabled
 
+
+
   vertexAttribPointer (AttribLocation 2) $=
-    (KeepIntegral
-    ,VertexArrayDescriptor 1 Int (fromIntegral particleRenderInfoSize) (intPtrToPtr . fromIntegral $ 2 * sizeOf (undefined::GLfloat)))
-  vertexAttribArray (AttribLocation 2) $= Enabled
-
-
-  vertexAttribPointer (AttribLocation 3) $=
     (ToFloat
-    ,VertexArrayDescriptor 3 Float (fromIntegral particleRenderInfoSize) (intPtrToPtr . fromIntegral $ 3 * sizeOf (undefined::GLfloat)))
-  vertexAttribArray (AttribLocation 3) $= Enabled
+    ,VertexArrayDescriptor 4 Float (fromIntegral particleRenderInfoSize) (intPtrToPtr . fromIntegral $ 2 * sizeOf (undefined::GLfloat)))
+  vertexAttribArray (AttribLocation 2) $= Enabled
   
-  traverse_ (flip glVertexAttribDivisor 1) [1..3]
+  traverse_ (flip glVertexAttribDivisor 1) [1..2]
   pure (vao,vbo,vbo2)
   where vertices :: Vector GLfloat
         vertices = fromList [-0.5,0.5,0.0,1.0
@@ -160,9 +156,9 @@ initParticleVao = do
                             ,-0.5,0.5,0.0,1.0]
 
 
-initResource :: IO Program
+initResource :: IO (Program,Program)
 initResource = do
-  Right resource <- loadResourceFromFiles "awesomeface.png" "background.png"  "block.png" "block_solid.png" "paddle.png" "shader.vert" "shader.frag"  "particle.vert" "particle.frag"
+  Right resource <- loadResourceFromFiles "awesomeface.png" "background.png"  "block.png" "block_solid.png" "paddle.png" "shader.vert" "shader.frag"  "particle.vert" "particle.frag" "particle.png"
   activeTexture $= TextureUnit 0
   textureBinding Texture2D $= Just (ballTexture resource)
   activeTexture $= TextureUnit 1
@@ -173,7 +169,10 @@ initResource = do
   textureBinding Texture2D $= Just (solidBlockTexture resource)
   activeTexture $= TextureUnit 4
   textureBinding Texture2D $= Just (paddleTexture resource)
+  activeTexture $= TextureUnit 5
+  textureBinding Texture2D $= Just (particleTexture resource)
   let program = shaderProgram resource
+      program' = particleProgram resource
   currentProgram $= Just program
   mtx <- toGLmatrix projection :: IO (GLmatrix GLfloat)
   join $ uniformFunc program "image[0]" <*> (pure.TextureUnit) 0
@@ -182,7 +181,15 @@ initResource = do
   join $ uniformFunc program "image[3]" <*> (pure.TextureUnit) 3
   join $ uniformFunc program "image[4]" <*> (pure.TextureUnit) 4
   join $ uniformFunc program "projection" <*> pure mtx
-  pure program
+  currentProgram $= Just program'
+  join $ uniformFunc program' "image" <*> (pure.TextureUnit) 5
+  join $ uniformFunc program' "projection" <*> pure mtx
+  pure (program,program')
+
+
+
+
+
 
 uniformFunc :: Uniform a => Program -> String -> IO (a -> IO ())
 uniformFunc program uStr = do
@@ -205,6 +212,18 @@ pokeRenderInfo infos ptr =
 
 
 
+pokeParticleRenderInfo infos ptr =
+  let ptrs = L.scanl plusPtr ptr (repeat particleRenderInfoSize) :: [Ptr GLfloat]
+      xs = zip ptrs (Data.Foldable.toList infos)
+  in traverse_ f xs
+  where f :: (Ptr GLfloat, ParticleRenderInfo) -> IO ()
+        f (beg, (offset,color)) =
+          let offsetBegin = beg :: Ptr GLfloat
+              colorBegin = beg `plusPtr` (2*sizeOf(undefined::GLfloat))
+          in do poke (castPtr offsetBegin) offset
+                poke (castPtr colorBegin) color
+
+
 -- This sadly does not handle anything
 mappingFailureCallback MappingFailed = hPutStrLn stderr "Ooops, how could the mapping possibly go wrong!!"
 mappingFailureCallback _ = pure ()
@@ -213,12 +232,21 @@ mappingFailureCallback _ = pure ()
 renderNaive :: VertexArrayObject -> BufferObject -> Program -> [RenderInfo]  -> IO ()
 renderNaive vao objectVbo program xs  =
   let l = L.genericLength xs -- To be optimized
+  -- added a few weeks later: no, this will probably NEVER be optimized
   in do currentProgram $= Just program
         bindBuffer ArrayBuffer $= Just objectVbo
         withMappedBuffer ArrayBuffer WriteOnly (pokeRenderInfo xs) mappingFailureCallback
         bindVertexArrayObject $= Just vao
         drawArraysInstanced Triangles 0 6 l
 
+renderParticle :: VertexArrayObject ->BufferObject -> Program -> [ParticleRenderInfo] -> IO()
+renderParticle vao objectVbo program xs =
+  let l = L.genericLength xs
+  in do currentProgram $= Just program
+        bindBuffer ArrayBuffer $= Just objectVbo
+        withMappedBuffer ArrayBuffer WriteOnly (pokeParticleRenderInfo xs) mappingFailureCallback
+        bindVertexArrayObject $= Just vao
+        drawArraysInstanced Triangles 0 6 l
 toGLmatrix :: (Matrix m, MatrixComponent c) => M44 c -> IO (m c)
 toGLmatrix mr =
   let mc = transpose mr
