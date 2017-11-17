@@ -11,7 +11,7 @@ uniform mat4 projection;
 
 void main()
 {
-  const float scale = 100.0f;
+  const float scale = 10.0f;
   TexCoords = vertex.zw;
   spriteColor = _spriteColor;
   

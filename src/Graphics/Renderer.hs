@@ -233,7 +233,8 @@ renderNaive :: VertexArrayObject -> BufferObject -> Program -> [RenderInfo]  -> 
 renderNaive vao objectVbo program xs  =
   let l = L.genericLength xs -- To be optimized
   -- added a few weeks later: no, this will probably NEVER be optimized
-  in do currentProgram $= Just program
+  in do blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
+        currentProgram $= Just program
         bindBuffer ArrayBuffer $= Just objectVbo
         withMappedBuffer ArrayBuffer WriteOnly (pokeRenderInfo xs) mappingFailureCallback
         bindVertexArrayObject $= Just vao
@@ -242,7 +243,8 @@ renderNaive vao objectVbo program xs  =
 renderParticle :: VertexArrayObject ->BufferObject -> Program -> [ParticleRenderInfo] -> IO()
 renderParticle vao objectVbo program xs =
   let l = L.genericLength xs
-  in do currentProgram $= Just program
+  in do blendFunc $= (SrcAlpha, One)
+        currentProgram $= Just program
         bindBuffer ArrayBuffer $= Just objectVbo
         withMappedBuffer ArrayBuffer WriteOnly (pokeParticleRenderInfo xs) mappingFailureCallback
         bindVertexArrayObject $= Just vao

@@ -42,7 +42,6 @@ initializeSDL = do
   clearColor $= Color4 (102/255) (204/255) (255/255) 1
   cullFace $= Just Back
   blend $= Enabled
-  blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
   swapInterval $= SynchronizedUpdates
   return window
 
