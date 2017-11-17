@@ -53,4 +53,4 @@ particleSpawner sigs (maybeVel,maybeParticleState,randomOffsets,ballPos) =
                                   currSigs = newSigs <> aliveSigs
                               in dpSwitchB currSigs (callSpawner (V2 0 0) >>> notYet) particleSpawner
        Nothing -> dpSwitchB (newSigs <> sigs) (callSpawner (V2 0 0)  >>> notYet) particleSpawner
-  where genParticles (offset1, offset2) pos vel = [particleObject (pos Linear.^+^ offset1) vel 0.5, particleObject (pos Linear.^+^ offset2) vel 0.5]
+  where genParticles (offset1, offset2) pos vel = [particleObject (pos Linear.^+^ offset1) vel 0.6, particleObject (pos Linear.^+^ offset2) vel 0.6]

@@ -58,9 +58,14 @@ sigBall = ballObject
 sigParticles = dpSwitchB  [] (callSpawner (V2 0 0) >>> notYet) particleSpawner
 
 sig seed blocks = let bsig = dpSwitchB blocks callKiller blockSerialKiller
-                      (seed1,seed2) = split seed
-                      noise1 = noiseR (-10,10) seed1
-                      noise2 = noiseR (-10,10) seed2
+                      (seed1P,seed2P) = split seed
+                      (seed1,seed1') = split seed1P
+                      (seed2,seed2') = split seed2P
+                      noise1 = noiseR (-5,5) seed1
+                      noise1' = noiseR (-5,5) seed1'
+                      noise2 = noiseR (-5,5) seed2
+                      noise2' = noiseR (-5,5) seed2'
+                      
                       
   in
   proc (MainSigIn flow gi) -> do
@@ -75,10 +80,12 @@ sig seed blocks = let bsig = dpSwitchB blocks callKiller blockSerialKiller
                                                                           else Just $ head xs) .catMaybes . (mcol:) .fmap collision $ objInfos)
     objInfos <- bsig -< ballPos
   
-  offset1 <-noise1 -< undefined
-  offset2 <-noise2 -< undefined
-  let offsetV1 = V2 offset1 (-offset1)
-      offsetV2 = V2 offset2 (-offset2)
+  offset1x <-noise1 -< undefined
+  offset1y <-noise1' -< undefined
+  offset2x <-noise2 -< undefined
+  offset2y <-noise2' -< undefined
+  let offsetV1 = V2 offset1x offset1y
+      offsetV2 = V2 offset2x offset2y
   pOut<-sigParticles -< (ballPos,(offsetV1,offsetV2))
   returnA -< Info flow ((Graphics.Renderer.scale 1024 768 1,1,Color3 1 1 1):paddleR :  fmap renderInfo objInfos ++ [ballR]) (snd.unzip $ pOut)
 
