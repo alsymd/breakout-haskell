@@ -30,7 +30,7 @@ laifuLoop = loopPre 0 laifuSig
 colorSwitch c@(Color3 r g b)  = let init = constant c
                                     newColor = constant (Color3 (1-r) (1-g) (1-b))
 
-                                in switch (init &&& edge) (const $ switch (newColor &&& edge <<< arr not) (const (colorSwitch c)))
+                                in dSwitch (init &&& edge) (const $ dSwitch (newColor &&& edge <<< arr not) (const (colorSwitch c)))
 
 
 data BlockOut = BlockOut

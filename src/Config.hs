@@ -20,7 +20,7 @@ ballRadius :: GLfloat
 ballRadius = 15
 
 ballSpeed :: GLfloat
-ballSpeed = 500
+ballSpeed = 700
 
 paddleVelocity :: GLfloat
 paddleVelocity = 800
